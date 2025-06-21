@@ -25,3 +25,4 @@ pnpm-lock.yaml
 *.tar.gz
 *.rar
 *.7z
+my/
