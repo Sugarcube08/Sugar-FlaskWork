@@ -101,7 +101,7 @@ if __name__ == '__main__':
             env['PATH'] = f"{node_path};{env['PATH']}"
             subprocess.Popen([    
             "powershell", "-Command",
-            "npx tailwindcss -i ./static/src/input.css -o ./static/src/output.css"
+            "npx tailwindcss -i ./static/src/input.css -o ./static/src/output.css --watch"
             ], env=env)
         elif os_type == "Linux":
             print("🎨 Starting Tailwind CSS in watch mode...")

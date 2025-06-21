@@ -17,7 +17,6 @@ def run_setup():
         print("🌐 Initializing Tailwind CSS...")
         subprocess.run(["npm", "init", "-y"])
         subprocess.run(["npm", "install", "-D", "tailwindcss"])
-        subprocess.run(["npx", "tailwindcss", "init"])
         subprocess.run([
         "npx", "tailwindcss", "-i", "./static/src/input.css",
         "-o", "./static/css/output.css"
