@@ -1,0 +1,11 @@
+from . import db
+
+# To define your db schema remove pass and structurize like this:
+# class User(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     username = db.Column(db.String(80), unique=True, nullable=False)
+    # other fields...
+
+class {className}(db.Model):
+    __tablename__ = '{name}'
+    pass

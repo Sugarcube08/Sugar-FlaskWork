@@ -2,16 +2,16 @@ from flask import Blueprint, render_template
 
 class {className}:
     def __init__(self):
-        pass
+        self.view_base = '{name}'
 
-    def index():
-        return render_template('{name}.html')
+    def index(self):
+        return render_template('{self.view_base}.html')
     
     
     def create(self):
         pass
     
-    def store(self):
+    def store(self=None):
         pass
     
     def show(self, id):
