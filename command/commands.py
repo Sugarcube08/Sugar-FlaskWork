@@ -4,6 +4,10 @@ import platform
 import sys
 import base64
 import time
+from flask_migrate import init as flask_migrate_init
+from flask_migrate import migrate as flask_migrate_migrate
+from flask_migrate import upgrade as flask_migrate_upgrade
+
 
 # === 🛠️ Setup Command ===
 def run_setup():
@@ -111,72 +115,19 @@ def generate_env(force=False):
     print(f"🔑 Preview: base64:{new_key[:6]}...{new_key[-6:]}")
 
 
-def configure_scoop_nodejs_tailwind():
-    # Check if the platform is Windows
-    if platform.system() != 'Windows':
-        print("⚠️ This function is designed for Windows only!")
-        return
-    
-    print("🪟 Configuring Scoop, Node.js, and Tailwind CSS for Windows...")
-
-    # Set up environment variables
-    env = os.environ.copy()
-
-    # === Step 1: Install Scoop ===
-    try:
-        print("📦 Installing Scoop...")
-        subprocess.run(["powershell", "-Command", "iwr -useb get.scoop.sh | iex"], check=True)
-        print("✅ Scoop installed successfully.")
-    except subprocess.CalledProcessError:
-        print("❌ Error while installing Scoop.")
-        return
-
-    # === Step 2: Update PATH for Scoop ===
-    scoop_shims_path = os.path.expanduser('~/scoop/shims')
-    if os.path.exists(scoop_shims_path):
-        env['PATH'] = f"{scoop_shims_path};{env['PATH']}"
-    else:
-        print("⚠️ Scoop shims directory not found, skipping PATH update.")
-        return
-
-    # === Step 3: Install Node.js using Scoop ===
-    try:
-        print("🪟 Installing Node.js using Scoop...")
-        subprocess.run(["powershell", "-Command", "scoop install nodejs"], check=True, env=env)
-        print("✅ Node.js installed successfully.")
-    except subprocess.CalledProcessError:
-        print("❌ Error while installing Node.js.")
-        return
-
-    # Update the PATH for Node.js binaries (typically under scoop/apps/nodejs/current)
-    nodejs_path = os.path.expanduser('~/scoop/apps/nodejs/current/bin')
-    if os.path.exists(nodejs_path):
-        env['PATH'] = f"{nodejs_path};{env['PATH']}"
-    else:
-        print("⚠️ Node.js directory not found, skipping PATH update.")
-        return
-
-    # === Step 4: Install Tailwind CSS using npm ===
-    try:
-        print("🌐 Initializing Tailwind CSS...")
-        subprocess.run(["powershell", "-Command", "npm init -y"], check=True, env=env)
-        subprocess.run(["powershell", "-Command", "npm install tailwindcss @tailwindcss/cli"], check=True, env=env)
-        subprocess.run(["powershell", "-Command", "npx tailwindcss init"], check=True, env=env)
-        subprocess.run([
-            "powershell", "-Command",
-            "npx tailwindcss -i ./static/src/input.css -o ./static/css/output.css"
-        ], check=True, env=env)
-        print("✅ Tailwind CSS initialized successfully.")
-    except subprocess.CalledProcessError:
-        print("❌ Error while installing Tailwind CSS.")
-        return
-
-
 def create_controller(name):
-    # 💡 Format controller name properly
-    class_name = name.capitalize() + "Controller"
-    file_stem = name.lower() + "Controller"
-    file_name = f"{file_stem}.py"
+    if '/' in name or '\\' in name:
+        path = name.replace('/','.').replace('\\', '.')
+        name = path.split('.')[-1]  # Get the last part as the controller name
+        # 💡 Format controller name properly
+        class_name = name.capitalize() + "Controller"
+        file_stem = path.lower() + "Controller"
+        file_name = f"{file_stem.replace('.','/')}.py"
+    else:
+        # 💡 Format controller name properly
+        class_name = name.capitalize() + "Controller"
+        file_stem = name.lower() + "Controller"
+        file_name = f"{file_stem}.py"
 
     # 🛣️ Paths
     base_dir = os.path.dirname(os.path.dirname(__file__))  # go up to project root
@@ -224,3 +175,78 @@ def create_controller(name):
         print(f"🔗 Registered {class_name} in controller/__init__.py")
     else:
         print(f"ℹ️ {class_name} already registered in controller/__init__.py")
+
+import os
+
+def create_model(name):
+    if '/' in name or '\\' in name:
+        path = name.replace('/', '.').replace('\\', '.')
+        name = path.split('.')[-1]
+        class_name = name.capitalize()
+        file_stem = path.lower()
+        file_name = f"{file_stem.replace('.', '/')}.py"
+    else:
+        class_name = name.capitalize()
+        file_stem = name.lower()
+        file_name = f"{file_stem}.py"
+
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    model_dir = os.path.join(base_dir, 'models')
+    template_path = os.path.join(base_dir, 'command', 'template', 'Model.txt')
+    output_path = os.path.join(model_dir, file_name)
+    init_path = os.path.join(model_dir, '__init__.py')
+
+    os.makedirs(model_dir, exist_ok=True)
+
+    if not os.path.exists(template_path):
+        raise FileNotFoundError(f"❌ Template not found at: {template_path}")
+
+    with open(template_path, 'r') as f:
+        template = f.read()
+
+    content = template.replace('{className}', class_name).replace('{name}', name.lower())
+
+    with open(output_path, 'w') as f:
+        f.write(content)
+
+    print(f"✅ Created: models/{file_name}")
+
+    import_line = f"from .{file_stem} import {class_name}"
+    append_line = f"__all__.append('{class_name}')"
+
+    if not os.path.exists(init_path):
+        with open(init_path, 'w') as f:
+            f.write("from flask_sqlalchemy import SQLAlchemy\ndb = SQLAlchemy()\n__all__ = []\n")
+
+    with open(init_path, 'r') as f:
+        init_content = f.read()
+
+    if import_line not in init_content:
+        with open(init_path, 'a') as f:
+            if not init_content.endswith('\n'):
+                f.write('\n')
+            f.write(f"{import_line}\n{append_line}\n")
+        print(f"🔗 Registered {class_name} in models/__init__.py")
+    else:
+        print(f"ℹ️ {class_name} already registered in models/__init__.py")
+
+def migrate_init():
+    from flask_migrate import init
+    print("Initializing migrations directory...")
+    init()
+    print("Migration directory initialized.")
+
+def migrate_commit_and_apply():
+    from flask_migrate import migrate, upgrade
+    print("Generating migration script...")
+    migrate()
+    commit_msg = input("Enter migration commit message (e.g., 'Added user table'): ").strip()
+    if commit_msg:
+        # Optionally: write commit message somewhere or log it.
+        print(f"Commit message: {commit_msg}")
+    else:
+        print("No commit message entered.")
+
+    print("Applying migration to database...")
+    upgrade()
+    print("Migration complete.")
