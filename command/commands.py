@@ -250,3 +250,107 @@ def migrate_commit_and_apply():
     print("Applying migration to database...")
     upgrade()
     print("Migration complete.")
+
+def create_html_template(name):
+    if not name.isidentifier():
+        print("❌ Invalid template name. Use letters, numbers, and underscores only.")
+        return
+
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+
+    # Paths
+    template_txt_path = os.path.join(base_dir, 'command', 'template', 'Template.txt')
+    templates_dir = os.path.join(base_dir, 'templates')
+    output_file_path = os.path.join(templates_dir, f'{name}.html')
+
+    # Ensure template.txt exists
+    if not os.path.exists(template_txt_path):
+        print(f"❌ Template base file not found at: {template_txt_path}")
+        return
+
+    os.makedirs(templates_dir, exist_ok=True)
+
+    # Don't overwrite if already exists
+    if os.path.exists(output_file_path):
+        print(f"⚠️ Template '{name}.html' already exists at: {output_file_path}")
+        return
+
+    # Load and render
+    with open(template_txt_path, 'r') as f:
+        template_content = f.read()
+
+    rendered_content = template_content.replace('{name}', name)
+
+    # Write new HTML file
+    with open(output_file_path, 'w') as f:
+        f.write(rendered_content)
+
+    print(f"✅ Template '{name}.html' created at: {output_file_path}")
+
+def create_all(name):
+    print(f"\n🔧 Creating full component set for: {name}")
+    
+    try:
+        create_controller(name)
+        create_model(name)
+        create_html_template(name)
+        print(f"\n✅ All components for '{name}' created successfully!")
+    except Exception as e:
+        print(f"❌ Failed to create all components: {e}")
+
+def create_component_template(name):
+    if not name.isidentifier():
+        print("❌ Invalid component name. Use only letters, numbers, and underscores.")
+        return
+
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    template_txt_path = os.path.join(base_dir, 'command', 'template', 'Component.txt')
+    components_dir = os.path.join(base_dir, 'templates', 'components')
+    output_path = os.path.join(components_dir, f"{name}.html")
+
+    if not os.path.exists(template_txt_path):
+        print(f"❌ Component.txt not found at: {template_txt_path}")
+        return
+
+    os.makedirs(components_dir, exist_ok=True)
+
+    if os.path.exists(output_path):
+        print(f"⚠️ Component '{name}.html' already exists.")
+        return
+
+    with open(template_txt_path, 'r') as f:
+        content = f.read().replace("{name}", name)
+
+    with open(output_path, 'w') as f:
+        f.write(content)
+
+    print(f"✅ Component created: templates/components/{name}.html")
+
+
+def create_subtemplate(name):
+    if not name.isidentifier():
+        print("❌ Invalid subtemplate name. Use only letters, numbers, and underscores.")
+        return
+
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    template_txt_path = os.path.join(base_dir, 'command', 'template', 'subTemplate.txt')
+    subtemplate_dir = os.path.join(base_dir, 'templates', 'subtemplate')
+    output_path = os.path.join(subtemplate_dir, f"{name}.html")
+
+    if not os.path.exists(template_txt_path):
+        print(f"❌ subTemplate.txt not found at: {template_txt_path}")
+        return
+
+    os.makedirs(subtemplate_dir, exist_ok=True)
+
+    if os.path.exists(output_path):
+        print(f"⚠️ Subtemplate '{name}.html' already exists.")
+        return
+
+    with open(template_txt_path, 'r') as f:
+        content = f.read().replace("{name}", name)
+
+    with open(output_path, 'w') as f:
+        f.write(content)
+
+    print(f"✅ Subtemplate created: templates/subtemplate/{name}.html")
