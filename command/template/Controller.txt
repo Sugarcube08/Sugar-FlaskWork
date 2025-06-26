@@ -5,7 +5,7 @@ class {className}:
         self.view_base = '{name}'
 
     def index(self):
-        return render_template('{self.view_base}.html')
+        return render_template(f'{self.view_base}.html')
     
     
     def create(self):
