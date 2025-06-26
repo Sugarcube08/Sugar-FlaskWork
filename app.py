@@ -20,7 +20,8 @@ from command.commands import (
                                 create_html_template,
                                 create_all,
                                 create_component_template,
-                                create_subtemplate
+                                create_subtemplate,
+                                create_admin
                             )
 
 # === 🔒 Flask App Initialization ===
@@ -153,7 +154,10 @@ def main():
 
     parser_subtemplate = subparsers.add_parser("create:subtemplate", help="Generate a subtemplate in templates/subtemplate")
     parser_subtemplate.add_argument("name", help="Subtemplate name (without .html)")
-
+    
+    parser_admin = subparsers.add_parser("create:admin", help="Create an admin user")
+    parser_admin.add_argument("email", help="Admin email address")
+    parser_admin.add_argument("password", help="Admin password")
 
     subparsers.add_parser("migrate:init", help="Initialize migration directory")
     subparsers.add_parser("migrate", help="Generate migration script and upgrade DB")
@@ -208,6 +212,12 @@ def main():
     elif args.command == "create:subtemplate":
         print(f"🧩 Creating subtemplate: {args.name}")
         create_subtemplate(args.name)
+
+    elif args.command == "create:admin":
+        print("👤 Creating admin user...")
+        configure_app()
+        with app.app_context():
+            create_admin(args.email, args.password)
 
     else:
         parser.print_help()

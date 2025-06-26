@@ -7,7 +7,7 @@ import time
 from flask_migrate import init as flask_migrate_init
 from flask_migrate import migrate as flask_migrate_migrate
 from flask_migrate import upgrade as flask_migrate_upgrade
-
+from models import Admin, db
 
 # === 🛠️ Setup Command ===
 def run_setup():
@@ -175,8 +175,6 @@ def create_controller(name):
         print(f"🔗 Registered {class_name} in controller/__init__.py")
     else:
         print(f"ℹ️ {class_name} already registered in controller/__init__.py")
-
-import os
 
 def create_model(name):
     if '/' in name or '\\' in name:
@@ -354,3 +352,27 @@ def create_subtemplate(name):
         f.write(content)
 
     print(f"✅ Subtemplate created: templates/subtemplate/{name}.html")
+
+def create_admin(email, password):
+    if not email or not password:
+        print("❌ Email and password are required to create an admin.")
+        return
+
+    try:
+        # Check if admin already exists
+        existing_admin = Admin.query.filter_by(email=email).first()
+        if existing_admin:
+            print(f"⚠️ Admin with email '{email}' already exists.")
+            return
+
+        # Create new admin
+        new_admin = Admin(email=email)
+        new_admin.set_password(password)
+
+        db.session.add(new_admin)
+        db.session.commit()
+        print(f"✅ Admin created successfully: {email}")
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Failed to create admin: {e}")
