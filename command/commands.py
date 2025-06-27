@@ -147,7 +147,7 @@ def create_controller(name):
         template = f.read()
 
     # 📝 Replace placeholders
-    content = template.replace('{className}', class_name).replace('{name}', name.lower())
+    content = template.replace('{className}', class_name).replace('{name}', name)
 
     # 💾 Write to new controller file
     with open(output_path, 'w') as f:
