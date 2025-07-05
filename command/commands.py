@@ -147,7 +147,7 @@ def create_controller(name):
         template = f.read()
 
     # 📝 Replace placeholders
-    content = template.replace('{className}', class_name).replace('{name}', name.lower())
+    content = template.replace('{className}', class_name).replace('{name}', name)
 
     # 💾 Write to new controller file
     with open(output_path, 'w') as f:
@@ -235,19 +235,27 @@ def migrate_init():
     print("Migration directory initialized.")
 
 def migrate_commit_and_apply():
-    from flask_migrate import migrate, upgrade
+    print("Checking DB is up to date...")
+    try:
+        flask_migrate_upgrade()  # Try upgrading DB to current head
+    except Exception as e:
+        print(f"⚠️ Failed to upgrade DB: {e}")
+        choice = input("Do you want to stamp DB to the current head? (yes/no): ").strip().lower()
+        if choice == "yes":
+            from flask_migrate import stamp
+            stamp(revision="head")
+            print("📌 Database stamped to head. Continuing...")
+        else:
+            print("❌ Migration aborted.")
+            return
+
     print("Generating migration script...")
-    migrate()
     commit_msg = input("Enter migration commit message (e.g., 'Added user table'): ").strip()
-    if commit_msg:
-        # Optionally: write commit message somewhere or log it.
-        print(f"Commit message: {commit_msg}")
-    else:
-        print("No commit message entered.")
+    flask_migrate_migrate(message=commit_msg or "Auto migration")
 
     print("Applying migration to database...")
-    upgrade()
-    print("Migration complete.")
+    flask_migrate_upgrade()
+    print("✅ Migration complete.")
 
 def create_html_template(name):
     if not name.isidentifier():
@@ -376,3 +384,68 @@ def create_admin(email, password):
     except Exception as e:
         db.session.rollback()
         print(f"❌ Failed to create admin: {e}")
+        
+def drop_all_tables(app):
+    with app.app_context():
+        confirm = input("⚠️ This will DROP the entire DATABASE! Type 'yes' to confirm: ")
+        if confirm.lower() != "yes":
+            print("❌ Drop aborted.")
+            return
+
+        engine = db.get_engine()
+        db_name = engine.url.database
+
+        # Create a neutral DB URL (connect without selecting a specific DB)
+        neutral_url = engine.url.set(database=None)
+        db.session.close()
+        engine.dispose()
+
+        print(f"🧨 Dropping database '{db_name}'...")
+
+        from sqlalchemy import create_engine
+
+        neutral_engine = create_engine(neutral_url)
+
+        try:
+            with neutral_engine.connect() as conn:
+                conn.execution_options(isolation_level="AUTOCOMMIT")
+                conn.exec_driver_sql(f"DROP DATABASE IF EXISTS `{db_name}`;")
+                conn.exec_driver_sql(f"CREATE DATABASE `{db_name}`;")
+            print(f"✅ Database '{db_name}' dropped and recreated successfully.")
+        except Exception as e:
+            print(f"❌ Failed to drop database: {e}")
+
+def drop_table_by_name(app, model_name):
+    with app.app_context():
+        from models import __all__ as model_list
+        try:
+            if model_name not in model_list:
+                print(f"❌ No model named '{model_name}' found.")
+                return
+            model_class = getattr(__import__('models'), model_name)
+            model_class.__table__.drop(db.engine)
+            print(f"✅ Dropped table: {model_name}")
+        except Exception as e:
+            print(f"❌ Failed to drop {model_name}: {e}")
+
+def start_tailwind_watch():
+    print("🎨 Starting Tailwind CSS in watch mode...")
+    os_type = platform.system()
+    try:
+        if os_type == "Windows":
+            env = os.environ.copy()
+            node_path = os.path.expanduser('~/scoop/apps/nodejs/current')
+            env['PATH'] = f"{node_path};{env['PATH']}"
+            subprocess.Popen([
+                "powershell", "-Command",
+                "npx tailwindcss -i ./static/src/input.css -o ./static/css/output.css --watch"
+            ], env=env)
+        else:
+            subprocess.Popen([
+                "npx", "tailwindcss",
+                "-i", "./static/src/input.css",
+                "-o", "./static/css/output.css",
+                "--watch"
+            ])
+    except Exception as e:
+        print(f"⚠️ Tailwind watch failed to start: {e}")
