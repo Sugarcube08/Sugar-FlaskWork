@@ -54,7 +54,7 @@ def cli():
     parser_subtemplate.add_argument("name", help="Subtemplate name (without .html)")
     
     parser_admin = subparsers.add_parser("create:admin", help="Create an admin user")
-    parser_admin.add_argument("email", help="Admin email address")
+    parser_admin.add_argument("username", help="Admin username address")
     parser_admin.add_argument("password", help="Admin password")
 
     subparsers.add_parser("migrate:init", help="Initialize migration directory")
@@ -119,7 +119,7 @@ def cli():
         print("👤 Creating admin user...")
         app = create_app()
         with app.app_context():
-            create_admin(args.email, args.password)
+            create_admin(args.username, args.password)
             
     elif args.command == "migrate:drop":
         app = create_app()

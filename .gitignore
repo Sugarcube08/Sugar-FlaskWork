@@ -28,3 +28,10 @@ pnpm-lock.yaml
 my/
 .dist/
 build/
+migrations/
+migration.zip
+migration.tar.gz
+migration.rar
+instance/
+instance.zip
+instance.tar.gz

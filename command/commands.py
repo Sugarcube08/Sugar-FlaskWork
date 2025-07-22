@@ -4,10 +4,10 @@ import platform
 import sys
 import base64
 import time
-from flask_migrate import init as flask_migrate_init
+from flask_migrate import init
 from flask_migrate import migrate as flask_migrate_migrate
 from flask_migrate import upgrade as flask_migrate_upgrade
-from models import Admin, db
+from models import db, Admin
 
 # === 🛠️ Setup Command ===
 def run_setup():
@@ -229,7 +229,6 @@ def create_model(name):
         print(f"ℹ️ {class_name} already registered in models/__init__.py")
 
 def migrate_init():
-    from flask_migrate import init
     print("Initializing migrations directory...")
     init()
     print("Migration directory initialized.")
@@ -361,25 +360,25 @@ def create_subtemplate(name):
 
     print(f"✅ Subtemplate created: templates/subtemplate/{name}.html")
 
-def create_admin(email, password):
-    if not email or not password:
-        print("❌ Email and password are required to create an admin.")
+def create_admin(username, password):
+    if not username or not password:
+        print("❌ username and password are required to create an admin.")
         return
 
     try:
         # Check if admin already exists
-        existing_admin = Admin.query.filter_by(email=email).first()
+        existing_admin = Admin.query.filter_by(username=username).first()
         if existing_admin:
-            print(f"⚠️ Admin with email '{email}' already exists.")
+            print(f"⚠️ Admin with username '{username}' already exists.")
             return
 
         # Create new admin
-        new_admin = Admin(email=email)
+        new_admin = Admin(username=username)
         new_admin.set_password(password)
 
         db.session.add(new_admin)
         db.session.commit()
-        print(f"✅ Admin created successfully: {email}")
+        print(f"✅ Admin created successfully: {username}")
 
     except Exception as e:
         db.session.rollback()
