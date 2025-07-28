@@ -3,11 +3,13 @@ import subprocess
 import platform
 import sys
 import base64
+import shutil
 import time
-from flask_migrate import init
-from flask_migrate import migrate as flask_migrate_migrate
-from flask_migrate import upgrade as flask_migrate_upgrade
-from models import db, Admin
+from flask_migrate import init, stamp
+from flask_migrate import migrate 
+from flask_migrate import upgrade 
+from flask import current_app
+from models import Admin, db
 
 # === 🛠️ Setup Command ===
 def run_setup():
@@ -229,33 +231,57 @@ def create_model(name):
         print(f"ℹ️ {class_name} already registered in models/__init__.py")
 
 def migrate_init():
-    print("Initializing migrations directory...")
-    init()
-    print("Migration directory initialized.")
+    migrations_path = os.path.join(current_app.root_path, 'migrations')
+    if os.path.exists(migrations_path):
+        print("ℹ️ Migrations directory already exists.")
+    else:
+        print("📁 Initializing migrations directory...")
+        init()
+        print("✅ Migration directory initialized.")
+
 
 def migrate_commit_and_apply():
-    print("Checking DB is up to date...")
+    print("🔍 Attempting to upgrade database to latest version...")
     try:
-        flask_migrate_upgrade()  # Try upgrading DB to current head
+        upgrade()
+        print("✅ Database is now up to date with existing migrations.")
     except Exception as e:
         print(f"⚠️ Failed to upgrade DB: {e}")
-        choice = input("Do you want to stamp DB to the current head? (yes/no): ").strip().lower()
-        if choice == "yes":
-            from flask_migrate import stamp
-            stamp(revision="head")
-            print("📌 Database stamped to head. Continuing...")
+        if "Can't locate revision identified by" in str(e):
+            print("📌 The database revision is out of sync with your local migration files.")
+            choice = input("Do you want to stamp DB to the current head and continue? (yes/no): ").strip().lower()
+            if choice == "yes":
+                try:
+                    stamp(revision="head")
+                    print("✅ Database stamped to head. Attempting upgrade again.")
+                    upgrade() # Try upgrading again after stamping
+                    print("✅ Database successfully upgraded after stamping.")
+                except Exception as e_after_stamp:
+                    print(f"❌ Failed to upgrade after stamping: {e_after_stamp}. Aborting.")
+                    return
+            else:
+                print("❌ Migration aborted due to revision mismatch.")
+                return
+        elif "table already exists" in str(e).lower(): # Specific handling for your error
+            print("🚫 Error: A table already exists that a migration is trying to create.")
+            print("This often means a migration was run partially or the DB schema is out of sync.")
+            print("Consider manually reviewing your DB or resetting development databases.")
+            return
         else:
-            print("❌ Migration aborted.")
+            print("❌ Unexpected error during upgrade. Aborting.")
             return
 
-    print("Generating migration script...")
-    commit_msg = input("Enter migration commit message (e.g., 'Added user table'): ").strip()
-    flask_migrate_migrate(message=commit_msg or "Auto migration")
-
-    print("Applying migration to database...")
-    flask_migrate_upgrade()
-    print("✅ Migration complete.")
-
+    # Only proceed to autogenerate if upgrade was successful or handled
+    print("\n📝 Checking for schema changes and generating new migration script...")
+    commit_msg = input("Enter migration commit message (e.g., 'Added user table', leave empty for auto): ").strip()
+    try:
+        # Autogenerate will only create a script if there are actual model changes
+        migrate(message=commit_msg or "Auto migration")
+        print("✅ New migration script generated if schema changes were detected.")
+        print("Remember to review the generated script and run 'upgrade' to apply it.")
+    except Exception as e:
+        print(f"❌ Failed to generate migration script: {e}")
+    
 def create_html_template(name):
     if not name.isidentifier():
         print("❌ Invalid template name. Use letters, numbers, and underscores only.")
@@ -360,31 +386,31 @@ def create_subtemplate(name):
 
     print(f"✅ Subtemplate created: templates/subtemplate/{name}.html")
 
-def create_admin(username, password):
-    if not username or not password:
-        print("❌ username and password are required to create an admin.")
+def create_admin(email, password, post="Core Member"):
+    if not email or not password:
+        print("❌ Email and password are required to create an admin.")
         return
 
     try:
         # Check if admin already exists
-        existing_admin = Admin.query.filter_by(username=username).first()
+        existing_admin = Admin.query.filter_by(email=email).first()
         if existing_admin:
-            print(f"⚠️ Admin with username '{username}' already exists.")
+            print(f"⚠️ Admin with email '{email}' already exists.")
             return
 
         # Create new admin
-        new_admin = Admin(username=username)
+        new_admin = Admin(email=email, post=post)
         new_admin.set_password(password)
-
         db.session.add(new_admin)
         db.session.commit()
-        print(f"✅ Admin created successfully: {username}")
+        print(f"✅ Admin created successfully: {email}")
 
     except Exception as e:
         db.session.rollback()
         print(f"❌ Failed to create admin: {e}")
         
 def drop_all_tables(app):
+    migrations_path = os.path.join(current_app.root_path, 'migrations')
     with app.app_context():
         confirm = input("⚠️ This will DROP the entire DATABASE! Type 'yes' to confirm: ")
         if confirm.lower() != "yes":
@@ -393,27 +419,39 @@ def drop_all_tables(app):
 
         engine = db.get_engine()
         db_name = engine.url.database
+        db_driver = engine.url.drivername
 
-        # Create a neutral DB URL (connect without selecting a specific DB)
-        neutral_url = engine.url.set(database=None)
+        # Close the current session and dispose the engine
         db.session.close()
         engine.dispose()
 
         print(f"🧨 Dropping database '{db_name}'...")
-
-        from sqlalchemy import create_engine
-
-        neutral_engine = create_engine(neutral_url)
+        if os.path.exists(migrations_path):
+            print("📁 Deleting migrations directory...")
+            shutil.rmtree(migrations_path)
 
         try:
-            with neutral_engine.connect() as conn:
-                conn.execution_options(isolation_level="AUTOCOMMIT")
-                conn.exec_driver_sql(f"DROP DATABASE IF EXISTS `{db_name}`;")
-                conn.exec_driver_sql(f"CREATE DATABASE `{db_name}`;")
-            print(f"✅ Database '{db_name}' dropped and recreated successfully.")
+            if db_driver == 'sqlite':
+                # For SQLite, delete the database file
+                if os.path.exists(db_name):
+                    os.remove(db_name)
+                    print(f"✅ Database '{db_name}' dropped successfully.")
+                else:
+                    print(f"⚠️ Database file '{db_name}' does not exist.")
+            else:
+                # For other databases, use SQL commands
+                from sqlalchemy import create_engine
+                neutral_url = engine.url.set(database=None)
+                neutral_engine = create_engine(neutral_url)
+
+                with neutral_engine.connect() as conn:
+                    conn.execution_options(isolation_level="AUTOCOMMIT")
+                    conn.exec_driver_sql(f"DROP DATABASE IF EXISTS `{db_name}`;")
+                    conn.exec_driver_sql(f"CREATE DATABASE `{db_name}`;")
+                print(f"✅ Database '{db_name}' dropped and recreated successfully.")
         except Exception as e:
             print(f"❌ Failed to drop database: {e}")
-
+            
 def drop_table_by_name(app, model_name):
     with app.app_context():
         from models import __all__ as model_list
