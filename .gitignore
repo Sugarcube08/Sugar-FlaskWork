@@ -26,3 +26,12 @@ pnpm-lock.yaml
 *.rar
 *.7z
 my/
+.dist/
+build/
+migrations/
+migration.zip
+migration.tar.gz
+migration.rar
+instance/
+instance.zip
+instance.tar.gz

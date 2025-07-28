@@ -6,7 +6,7 @@ from flask import Flask
 from cryptography.fernet import Fernet
 from itsdangerous import URLSafeTimedSerializer
 from extensions import migrate, csrf
-from models import db  # Assuming models.py contains the db instance
+from models import db 
 from sqlalchemy import create_engine
 from sqlalchemy_utils import database_exists, create_database
 

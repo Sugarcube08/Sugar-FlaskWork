@@ -56,6 +56,7 @@ def cli():
     parser_admin = subparsers.add_parser("create:admin", help="Create an admin user")
     parser_admin.add_argument("email", help="Admin email address")
     parser_admin.add_argument("password", help="Admin password")
+    parser_admin.add_argument("post", help="Admin post (default: Core Member)", nargs='?', default="Core Member")
 
     subparsers.add_parser("migrate:init", help="Initialize migration directory")
     subparsers.add_parser("migrate", help="Generate migration script and upgrade DB")
@@ -76,7 +77,6 @@ def cli():
     elif args.command == "runserver":
         app = create_app()
         with app.app_context():
-            db.create_all()
             web.setupRoute(app)
             start_tailwind_watch()
             print("🚀 Starting Flask server...")
@@ -119,7 +119,7 @@ def cli():
         print("👤 Creating admin user...")
         app = create_app()
         with app.app_context():
-            create_admin(args.email, args.password)
+            create_admin(args.email, args.password, args.post)
             
     elif args.command == "migrate:drop":
         app = create_app()
