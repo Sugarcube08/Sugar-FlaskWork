@@ -409,8 +409,26 @@ def create_admin(email, password, post="Core Member"):
         db.session.rollback()
         print(f"❌ Failed to create admin: {e}")
         
+def handle_rmtree_error(func, path, excinfo):
+    """
+    Error handler for rmtree that changes file permissions on PermissionError
+    and then retries the deletion.
+    """
+    if excinfo[0] == PermissionError:
+        try:
+            os.chmod(path, stat.S_IWRITE)
+            func(path)
+        except Exception as e:
+            raise shutil.Error(f"Failed to delete {path} even after changing permissions: {e}")
+    else:
+        raise shutil.Error(f"Error deleting {path}: {excinfo[1]}")
+
 def drop_all_tables(app):
-    migrations_path = os.path.join(current_app.root_path, 'migrations')
+    """
+    Drops all database tables and removes the migrations directory.
+    This version includes robust error handling for file operations.
+    """
+    # Using app_context is required for Flask-SQLAlchemy
     with app.app_context():
         confirm = input("⚠️ This will DROP the entire DATABASE! Type 'yes' to confirm: ")
         if confirm.lower() != "yes":
@@ -421,23 +439,31 @@ def drop_all_tables(app):
         db_name = engine.url.database
         db_driver = engine.url.drivername
 
+        print(f"🧨 Dropping database '{db_name}'...")
+        
         # Close the current session and dispose the engine
         db.session.close()
         engine.dispose()
-
-        print(f"🧨 Dropping database '{db_name}'...")
+        
+        # Delete the migrations directory with the custom error handler
+        migrations_path = os.path.join(current_app.root_path, 'migrations')
         if os.path.exists(migrations_path):
-            print("📁 Deleting migrations directory...")
-            shutil.rmtree(migrations_path)
+            try:
+                print("📁 Deleting migrations directory...")
+                shutil.rmtree(migrations_path, onerror=handle_rmtree_error)
+                print("✅ Migrations directory deleted successfully.")
+            except shutil.Error as e:
+                print(f"❌ Failed to delete migrations directory: {e}")
 
         try:
             if db_driver == 'sqlite':
-                # For SQLite, delete the database file
-                if os.path.exists(db_name):
-                    os.remove(db_name)
-                    print(f"✅ Database '{db_name}' dropped successfully.")
+                # For SQLite, delete the database file using the full path
+                db_path = os.path.join(current_app.instance_path, db_name)
+                if os.path.exists(db_path):
+                    os.remove(db_path)
+                    print(f"✅ Database file '{db_name}' dropped successfully.")
                 else:
-                    print(f"⚠️ Database file '{db_name}' does not exist.")
+                    print(f"⚠️ Database file '{db_path}' does not exist.")
             else:
                 # For other databases, use SQL commands
                 from sqlalchemy import create_engine
@@ -451,6 +477,16 @@ def drop_all_tables(app):
                 print(f"✅ Database '{db_name}' dropped and recreated successfully.")
         except Exception as e:
             print(f"❌ Failed to drop database: {e}")
+
+        # Clean instance directory with the custom error handler
+        instance_path = os.path.join(current_app.root_path, 'instance')
+        if os.path.exists(instance_path):
+            try:
+                print("🗑️ Cleaning instance directory...")
+                shutil.rmtree(instance_path, onerror=handle_rmtree_error)
+                print("✅ Instance directory cleaned.")
+            except shutil.Error as e:
+                print(f"❌ Failed to clean instance directory: {e}")
             
 def drop_table_by_name(app, model_name):
     with app.app_context():
