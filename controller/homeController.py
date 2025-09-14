@@ -4,7 +4,7 @@ class HomeController:
     def __init__(self):
         pass
 
-    def index():
+    def index(self):
         return render_template('home.html')
     
     
