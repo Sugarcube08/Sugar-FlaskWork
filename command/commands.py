@@ -15,65 +15,120 @@ from models import Admin, db
 def run_setup():
     os_type = platform.system()
     print("📦 Installing Python requirements...")
-    subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
+    try:
+        subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Error installing Python requirements: {e}")
+        return
 
     if os_type == "Linux":
         print("🔧 Installing Node.js & npm for Linux...")
-        subprocess.run(["sudo", "apt", "install", "-y", "nodejs", "npm"])
-        print("🌐 Initializing Tailwind CSS...")
-        subprocess.run(["npm", "init", "-y"])
-        subprocess.run(["npm", "install", "-D", "tailwindcss"])
-        subprocess.run([
-        "npx", "tailwindcss", "-i", "./static/src/input.css",
-        "-o", "./static/css/output.css"
-    ])
+        try:
+            subprocess.run(["sudo", "apt", "install", "-y", "nodejs", "npm"], check=True)
+            print("✅ Node.js and npm installed successfully.")
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Error installing Node.js/npm on Linux: {e}")
+            print("Please ensure you have apt and sudo privileges.")
+            return
 
+        print("🌐 Initializing Tailwind CSS...")
+        try:
+            subprocess.run(["npm", "init", "-y"], check=True)
+            subprocess.run(["npm", "install", "tailwindcss", "@tailwindcss/cli"], check=True)
+            subprocess.run([
+                "npx", "@tailwindcss/cli", "-i", "./static/src/input.css",
+                "-o", "./static/css/output.css"
+            ], check=True)
+            print("✅ Tailwind CSS configured successfully.")
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Error configuring Tailwind CSS: {e}")
+            return
+    
     elif os_type == "Darwin":
         print("🍏 Installing Node.js for macOS...")
-        subprocess.run(["brew", "install", "node"])
+        try:
+            # Check if Homebrew is installed and install Node.js with it
+            subprocess.run(["brew", "--version"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            print("✅ Homebrew is installed. Using it to install Node.js.")
+            subprocess.run(["brew", "install", "node"], check=True)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            print("❌ Homebrew not found or installation failed. Using fallback method...")
+            print("1. Installing Xcode Command Line Tools...")
+            try:
+                subprocess.run(["xcode-select", "--install"], check=True)
+            except subprocess.CalledProcessError as e:
+                print(f"❌ Error installing Xcode Command Line Tools: {e}")
+                print("Please install them manually via the dialog that appears.")
+                return
+
+            print("2. Downloading Node.js installer...")
+            try:
+                subprocess.run([
+                    "curl", "-O",
+                    "https://nodejs.org/dist/v18.17.1/node-v18.17.1.pkg"
+                ], check=True)
+            except subprocess.CalledProcessError as e:
+                print(f"❌ Error downloading Node.js installer: {e}")
+                return
+
+            print("3. Opening installer. Please follow the prompts to complete the installation.")
+            subprocess.run(["open", "node-v18.17.1.pkg"])
+            print("\n❗️ IMPORTANT: Please install Node.js using the opened installer, then press Enter to continue...")
+            input()
+            
+        print("🌐 Initializing Tailwind CSS...")
+        try:
+            subprocess.run(["npm", "init", "-y"], check=True)
+            subprocess.run(["npm", "install", "tailwindcss", "@tailwindcss/cli"], check=True)
+            subprocess.run([
+                "npx", "@tailwindcss/cli", "-i", "./static/src/input.css",
+                "-o", "./static/css/output.css"
+            ], check=True)
+            print("✅ Tailwind CSS configured successfully.")
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Error configuring Tailwind CSS: {e}")
+            return
+    
     elif os_type == "Windows":
         print("🪟 Installing Node.js using Scoop on Windows...")
-
-        env = os.environ.copy()
-
-        # Set execution policy and TLS
-        subprocess.run([
-            "powershell", "-Command",
-            "Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force; "
-            "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12"
-        ], check=True, env=env)
-
-        # Install Scoop (if not already installed)
-        scoop_shims_path = os.path.expanduser("~/scoop/shims")
-        if not os.path.exists(scoop_shims_path):
+        try:
+            env = os.environ.copy()
             subprocess.run([
                 "powershell", "-Command",
-                "iwr -useb get.scoop.sh | iex"
-            ], shell=True, check=True, env=env)
-            time.sleep(3)
+                "Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force; "
+                "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12"
+            ], check=True, env=env)
+            
+            scoop_shims_path = os.path.expanduser("~/scoop/shims")
+            if not os.path.exists(scoop_shims_path):
+                print("Scoop not found. Installing Scoop...")
+                subprocess.run([
+                    "powershell", "-Command",
+                    "iwr -useb get.scoop.sh | iex"
+                ], shell=True, check=True, env=env)
+                time.sleep(3)
+                env["PATH"] = f"{scoop_shims_path};{env['PATH']}"
+            
+            subprocess.run(["powershell", "-Command", "scoop install nodejs"], check=True, env=env)
+            node_path = os.path.expanduser("~/scoop/apps/nodejs/current")
+            env["PATH"] = f"{node_path};{env['PATH']}"
+            print("✅ Node.js installed via Scoop successfully.")
 
-        # Add scoop shims to PATH for current session
-        env["PATH"] = f"{scoop_shims_path};{env['PATH']}"
+            print("🌐 Initializing Tailwind CSS...")
+            subprocess.run(["powershell", "-Command", "npm init -y"], check=True, env=env)
+            subprocess.run(["powershell", "-Command", "npm install tailwindcss @tailwindcss/cli"], check=True, env=env)
+            subprocess.run([
+                "powershell", "-Command",
+                "npx tailwindcss -i ./static/src/input.css -o ./static/css/output.css"
+            ], check=True, env=env)
+            print("✅ Tailwind CSS configured successfully.")
 
-        # Install Node.js using Scoop
-        subprocess.run(["powershell", "-Command", "scoop install nodejs"], check=True, env=env)
+        except subprocess.CalledProcessError as e:
+            print(f"❌ An error occurred during Windows setup: {e}")
+            print("Please ensure you have PowerShell and an internet connection.")
+            return
 
-        # Add Node.js install path to PATH for current session
-        node_path = os.path.expanduser("~/scoop/apps/nodejs/current")
-        env["PATH"] = f"{node_path};{env['PATH']}"
-
-        time.sleep(5)
-        print("🌐 Initializing Tailwind CSS...")
-
-        # Set up Tailwind CSS
-        subprocess.run(["powershell", "-Command", "npm init -y"], check=True, env=env)
-        subprocess.run(["powershell", "-Command", "npm install tailwindcss @tailwindcss/cli"], check=True, env=env)
-        subprocess.run([
-            "powershell", "-Command",
-            "npx tailwindcss -i ./static/src/input.css -o ./static/css/output.css"
-        ], check=True, env=env)
-
-        print("✅ Node.js and Tailwind CSS installed and configured successfully.")
+    print("\n✅ All setup tasks completed successfully!")
 
 
 # === 📄 .env Generator Command ===
