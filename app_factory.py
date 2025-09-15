@@ -6,7 +6,7 @@ from flask import Flask
 from cryptography.fernet import Fernet
 from itsdangerous import URLSafeTimedSerializer
 from extensions import migrate, csrf
-from models import db 
+from models import db
 from sqlalchemy import create_engine
 from sqlalchemy_utils import database_exists, create_database
 
@@ -34,10 +34,14 @@ def create_app():
     app = Flask(__name__)
     app.config.update(
         SECRET_KEY=raw_key,
+        HOST=os.getenv("HOST"),
+        PORT=int(os.getenv("PORT", 5000)),
         SQLALCHEMY_DATABASE_URI=database_uri,
         SQLALCHEMY_TRACK_MODIFICATIONS=os.getenv("SQLALCHEMY_TRACK_MODIFICATIONS", "False") == "True",
         FLASK_ENV=os.getenv("FLASK_ENV", "development"),
         FLASK_DEBUG=os.getenv("FLASK_DEBUG", "True") == "True",
+        UPLOAD_FOLDER=os.path.join(app.root_path, os.getenv("UPLOAD_FOLDER", "static/uploads")),
+        ALLOWED_EXTENSIONS=set(os.getenv("ALLOWED_EXTENSIONS", "png,jpg,jpeg,gif").split(",")),
     )
 
     # Create DB if needed (except SQLite)
@@ -45,6 +49,12 @@ def create_app():
         engine = create_engine(database_uri)
         if not database_exists(engine.url):
             create_database(engine.url)
+
+    # Ensure the base upload folder exists at app startup
+    # This will create E:\CODE\sugarcodez-web\static\uploads
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    print(f"DEBUG (app_factory): Base UPLOAD_FOLDER ensured: {app.config['UPLOAD_FOLDER']}")
+
 
     # Initialize extensions
     db.init_app(app)

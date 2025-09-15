@@ -15,65 +15,120 @@ from models import Admin, db
 def run_setup():
     os_type = platform.system()
     print("📦 Installing Python requirements...")
-    subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
+    try:
+        subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Error installing Python requirements: {e}")
+        return
 
     if os_type == "Linux":
         print("🔧 Installing Node.js & npm for Linux...")
-        subprocess.run(["sudo", "apt", "install", "-y", "nodejs", "npm"])
-        print("🌐 Initializing Tailwind CSS...")
-        subprocess.run(["npm", "init", "-y"])
-        subprocess.run(["npm", "install", "-D", "tailwindcss"])
-        subprocess.run([
-        "npx", "tailwindcss", "-i", "./static/src/input.css",
-        "-o", "./static/css/output.css"
-    ])
+        try:
+            subprocess.run(["sudo", "apt", "install", "-y", "nodejs", "npm"], check=True)
+            print("✅ Node.js and npm installed successfully.")
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Error installing Node.js/npm on Linux: {e}")
+            print("Please ensure you have apt and sudo privileges.")
+            return
 
+        print("🌐 Initializing Tailwind CSS...")
+        try:
+            subprocess.run(["npm", "init", "-y"], check=True)
+            subprocess.run(["npm", "install", "tailwindcss", "@tailwindcss/cli"], check=True)
+            subprocess.run([
+                "npx", "@tailwindcss/cli", "-i", "./static/src/input.css",
+                "-o", "./static/css/output.css"
+            ], check=True)
+            print("✅ Tailwind CSS configured successfully.")
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Error configuring Tailwind CSS: {e}")
+            return
+    
     elif os_type == "Darwin":
         print("🍏 Installing Node.js for macOS...")
-        subprocess.run(["brew", "install", "node"])
+        try:
+            # Check if Homebrew is installed and install Node.js with it
+            subprocess.run(["brew", "--version"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            print("✅ Homebrew is installed. Using it to install Node.js.")
+            subprocess.run(["brew", "install", "node"], check=True)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            print("❌ Homebrew not found or installation failed. Using fallback method...")
+            print("1. Installing Xcode Command Line Tools...")
+            try:
+                subprocess.run(["xcode-select", "--install"], check=True)
+            except subprocess.CalledProcessError as e:
+                print(f"❌ Error installing Xcode Command Line Tools: {e}")
+                print("Please install them manually via the dialog that appears.")
+                return
+
+            print("2. Downloading Node.js installer...")
+            try:
+                subprocess.run([
+                    "curl", "-O",
+                    "https://nodejs.org/dist/v18.17.1/node-v18.17.1.pkg"
+                ], check=True)
+            except subprocess.CalledProcessError as e:
+                print(f"❌ Error downloading Node.js installer: {e}")
+                return
+
+            print("3. Opening installer. Please follow the prompts to complete the installation.")
+            subprocess.run(["open", "node-v18.17.1.pkg"])
+            print("\n❗️ IMPORTANT: Please install Node.js using the opened installer, then press Enter to continue...")
+            input()
+            
+        print("🌐 Initializing Tailwind CSS...")
+        try:
+            subprocess.run(["npm", "init", "-y"], check=True)
+            subprocess.run(["npm", "install", "tailwindcss", "@tailwindcss/cli"], check=True)
+            subprocess.run([
+                "npx", "@tailwindcss/cli", "-i", "./static/src/input.css",
+                "-o", "./static/css/output.css"
+            ], check=True)
+            print("✅ Tailwind CSS configured successfully.")
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Error configuring Tailwind CSS: {e}")
+            return
+    
     elif os_type == "Windows":
         print("🪟 Installing Node.js using Scoop on Windows...")
-
-        env = os.environ.copy()
-
-        # Set execution policy and TLS
-        subprocess.run([
-            "powershell", "-Command",
-            "Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force; "
-            "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12"
-        ], check=True, env=env)
-
-        # Install Scoop (if not already installed)
-        scoop_shims_path = os.path.expanduser("~/scoop/shims")
-        if not os.path.exists(scoop_shims_path):
+        try:
+            env = os.environ.copy()
             subprocess.run([
                 "powershell", "-Command",
-                "iwr -useb get.scoop.sh | iex"
-            ], shell=True, check=True, env=env)
-            time.sleep(3)
+                "Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force; "
+                "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12"
+            ], check=True, env=env)
+            
+            scoop_shims_path = os.path.expanduser("~/scoop/shims")
+            if not os.path.exists(scoop_shims_path):
+                print("Scoop not found. Installing Scoop...")
+                subprocess.run([
+                    "powershell", "-Command",
+                    "iwr -useb get.scoop.sh | iex"
+                ], shell=True, check=True, env=env)
+                time.sleep(3)
+                env["PATH"] = f"{scoop_shims_path};{env['PATH']}"
+            
+            subprocess.run(["powershell", "-Command", "scoop install nodejs"], check=True, env=env)
+            node_path = os.path.expanduser("~/scoop/apps/nodejs/current")
+            env["PATH"] = f"{node_path};{env['PATH']}"
+            print("✅ Node.js installed via Scoop successfully.")
 
-        # Add scoop shims to PATH for current session
-        env["PATH"] = f"{scoop_shims_path};{env['PATH']}"
+            print("🌐 Initializing Tailwind CSS...")
+            subprocess.run(["powershell", "-Command", "npm init -y"], check=True, env=env)
+            subprocess.run(["powershell", "-Command", "npm install tailwindcss @tailwindcss/cli"], check=True, env=env)
+            subprocess.run([
+                "powershell", "-Command",
+                "npx tailwindcss -i ./static/src/input.css -o ./static/css/output.css"
+            ], check=True, env=env)
+            print("✅ Tailwind CSS configured successfully.")
 
-        # Install Node.js using Scoop
-        subprocess.run(["powershell", "-Command", "scoop install nodejs"], check=True, env=env)
+        except subprocess.CalledProcessError as e:
+            print(f"❌ An error occurred during Windows setup: {e}")
+            print("Please ensure you have PowerShell and an internet connection.")
+            return
 
-        # Add Node.js install path to PATH for current session
-        node_path = os.path.expanduser("~/scoop/apps/nodejs/current")
-        env["PATH"] = f"{node_path};{env['PATH']}"
-
-        time.sleep(5)
-        print("🌐 Initializing Tailwind CSS...")
-
-        # Set up Tailwind CSS
-        subprocess.run(["powershell", "-Command", "npm init -y"], check=True, env=env)
-        subprocess.run(["powershell", "-Command", "npm install tailwindcss @tailwindcss/cli"], check=True, env=env)
-        subprocess.run([
-            "powershell", "-Command",
-            "npx tailwindcss -i ./static/src/input.css -o ./static/css/output.css"
-        ], check=True, env=env)
-
-        print("✅ Node.js and Tailwind CSS installed and configured successfully.")
+    print("\n✅ All setup tasks completed successfully!")
 
 
 # === 📄 .env Generator Command ===
@@ -409,8 +464,26 @@ def create_admin(email, password, post="Core Member"):
         db.session.rollback()
         print(f"❌ Failed to create admin: {e}")
         
+def handle_rmtree_error(func, path, excinfo):
+    """
+    Error handler for rmtree that changes file permissions on PermissionError
+    and then retries the deletion.
+    """
+    if excinfo[0] == PermissionError:
+        try:
+            os.chmod(path, stat.S_IWRITE)
+            func(path)
+        except Exception as e:
+            raise shutil.Error(f"Failed to delete {path} even after changing permissions: {e}")
+    else:
+        raise shutil.Error(f"Error deleting {path}: {excinfo[1]}")
+
 def drop_all_tables(app):
-    migrations_path = os.path.join(current_app.root_path, 'migrations')
+    """
+    Drops all database tables and removes the migrations directory.
+    This version includes robust error handling for file operations.
+    """
+    # Using app_context is required for Flask-SQLAlchemy
     with app.app_context():
         confirm = input("⚠️ This will DROP the entire DATABASE! Type 'yes' to confirm: ")
         if confirm.lower() != "yes":
@@ -421,23 +494,31 @@ def drop_all_tables(app):
         db_name = engine.url.database
         db_driver = engine.url.drivername
 
+        print(f"🧨 Dropping database '{db_name}'...")
+        
         # Close the current session and dispose the engine
         db.session.close()
         engine.dispose()
-
-        print(f"🧨 Dropping database '{db_name}'...")
+        
+        # Delete the migrations directory with the custom error handler
+        migrations_path = os.path.join(current_app.root_path, 'migrations')
         if os.path.exists(migrations_path):
-            print("📁 Deleting migrations directory...")
-            shutil.rmtree(migrations_path)
+            try:
+                print("📁 Deleting migrations directory...")
+                shutil.rmtree(migrations_path, onerror=handle_rmtree_error)
+                print("✅ Migrations directory deleted successfully.")
+            except shutil.Error as e:
+                print(f"❌ Failed to delete migrations directory: {e}")
 
         try:
             if db_driver == 'sqlite':
-                # For SQLite, delete the database file
-                if os.path.exists(db_name):
-                    os.remove(db_name)
-                    print(f"✅ Database '{db_name}' dropped successfully.")
+                # For SQLite, delete the database file using the full path
+                db_path = os.path.join(current_app.instance_path, db_name)
+                if os.path.exists(db_path):
+                    os.remove(db_path)
+                    print(f"✅ Database file '{db_name}' dropped successfully.")
                 else:
-                    print(f"⚠️ Database file '{db_name}' does not exist.")
+                    print(f"⚠️ Database file '{db_path}' does not exist.")
             else:
                 # For other databases, use SQL commands
                 from sqlalchemy import create_engine
@@ -451,6 +532,16 @@ def drop_all_tables(app):
                 print(f"✅ Database '{db_name}' dropped and recreated successfully.")
         except Exception as e:
             print(f"❌ Failed to drop database: {e}")
+
+        # Clean instance directory with the custom error handler
+        instance_path = os.path.join(current_app.root_path, 'instance')
+        if os.path.exists(instance_path):
+            try:
+                print("🗑️ Cleaning instance directory...")
+                shutil.rmtree(instance_path, onerror=handle_rmtree_error)
+                print("✅ Instance directory cleaned.")
+            except shutil.Error as e:
+                print(f"❌ Failed to clean instance directory: {e}")
             
 def drop_table_by_name(app, model_name):
     with app.app_context():
