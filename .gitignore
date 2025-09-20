@@ -1,6 +1,7 @@
-# Ignore everything
-*
-# Allow only specific project files and folders
+# Ignore everything (all levels)
+**
+
+# Allow only specific project files
 !app.py
 !runner.py
 !.env.example
@@ -13,21 +14,31 @@
 !package-lock.json
 !tailwind.config.js
 
-# Include necessary folders and all their contents
+# Allow necessary folders and all their contents
 !command/
-!controller/
-!model/
-!route/
-!static/
-!templates/
-
-# Optionally include files at the root of each folder
 !command/**
+!controller/
 !controller/**
-!model/**
+!models/
+!models/**
+!route/
 !route/**
+!static/
 !static/**
+!templates/
 !templates/**
+
+# Allow common hidden project folders
+!.github/
+!.github/**
+!.husky/
+!.husky/**
+!.vscode/
+!.vscode/**
+!.idea/
+!.idea/**
+!.config/
+!.config/**
 
 # Ignore typical dev and build clutter
 .git/
@@ -37,8 +48,6 @@ __pycache__/
 *.pyd
 node_modules/
 .env
-.vscode/
-.idea/
 dist/
 build/
 *.log
