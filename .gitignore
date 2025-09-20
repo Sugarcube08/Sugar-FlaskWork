@@ -1,6 +1,5 @@
 # Ignore everything
-**
-
+*
 # Allow only specific project files and folders
 !app.py
 !runner.py
