@@ -6,8 +6,8 @@
 !runner.py
 !.env.example
 !.gitignore
-!.app_factory.py
-!.extensions.py
+!app_factory.py
+!extensions.py
 !requirements.txt
 !README.md
 !package.json
