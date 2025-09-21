@@ -15,7 +15,7 @@ This framework is still in its early phase and evolving rapidly. While many core
 - 🔧 **CLI-Driven Development**  
   Built-in command-line interface using `argparse` to scaffold components like:
   - `setup` – install dependencies for Python & Node.js
-  - `env:generate` – generate secure `.env` with `SECRET_KEY`
+  - `create:env` – generate secure `.env` with `SECRET_KEY`
   - `create:controller` – auto-generate controller files from templates
   - `runserver` – run the development server with TailwindCSS live build
 
@@ -46,7 +46,7 @@ This framework is still in its early phase and evolving rapidly. While many core
 python app.py setup
 
 # 🔐 Generate a secure .env file with SECRET_KEY
-python app.py env:generate
+python app.py create:env
 
 # 📂 Generate a new controller from template
 python app.py create:controller -c auth
