@@ -100,7 +100,7 @@ def cli():
     elif args.command == "migrate":
         app = create_app()
         with app.app_context():
-            migrate_commit_and_apply()
+            migrate_commit_and_apply(args.message)
 
     elif args.command == "create:template":
         print(f"🖼️ Creating template: {args.name}")
