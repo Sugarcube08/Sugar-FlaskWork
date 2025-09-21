@@ -73,6 +73,8 @@ def cli():
     if args.command == "setup":
         print("🔧 Running setup...")
         run_setup()
+        print("🔐 Generating .env file...")
+        generate_env(force=args.force)
 
     elif args.command == "create:env":
         print("🔐 Generating .env file...")
