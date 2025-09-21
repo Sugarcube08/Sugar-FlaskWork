@@ -32,7 +32,7 @@ def cli():
 
     subparsers.add_parser("setup", help="Install Python and Tailwind dependencies")
 
-    parser_env = subparsers.add_parser("generate:env", help="Generate a secure .env file with SECRET_KEY")
+    parser_env = subparsers.add_parser("create:env", help="Generate a secure .env file with SECRET_KEY")
     parser_env.add_argument('--force', action='store_true', help='Force overwrite existing .env file')
 
     parser_run = subparsers.add_parser("runserver", help="Start the Flask web server")
@@ -74,7 +74,7 @@ def cli():
         print("🔧 Running setup...")
         run_setup()
 
-    elif args.command == "generate:env":
+    elif args.command == "create:env":
         print("🔐 Generating .env file...")
         generate_env(force=args.force)
 
