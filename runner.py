@@ -1,8 +1,6 @@
 from app_factory import create_app
 from models import db  
-import os
 from route import web
-from dotenv import load_dotenv
 import argparse
 from command.commands import (
     run_setup,
@@ -21,8 +19,6 @@ from command.commands import (
     start_tailwind_watch
 )
 
-load_dotenv()
-
 def cli():
     parser = argparse.ArgumentParser(
         description="🛠️ Flask Application Manager",
@@ -36,8 +32,8 @@ def cli():
     parser_env.add_argument('--force', action='store_true', help='Force overwrite existing .env file')
 
     parser_run = subparsers.add_parser("runserver", help="Start the Flask web server")
-    parser_run.add_argument('--host', default=os.getenv("HOST"), help='Set the host address (default: 127.0.0.1)')
-    parser_run.add_argument('--port', type=int, default=os.getenv("PORT"), help='Set the port number (default: 5000)')
+    parser_run.add_argument('--host', default='127.0.0.1', help='Set the host address (default: 127.0.0.1)')
+    parser_run.add_argument('--port', type=int, default=5000, help='Set the port number (default: 5000)')
 
     parser_ctrl = subparsers.add_parser("create:controller", help="Generate a new controller")
     parser_ctrl.add_argument("name", help="Name of the controller")
@@ -63,7 +59,9 @@ def cli():
     parser_admin.add_argument("post", help="Admin post (default: Core Member)", nargs='?', default="Core Member")
 
     subparsers.add_parser("migrate:init", help="Initialize migration directory")
+
     subparsers.add_parser("migrate", help="Generate migration script and upgrade DB")
+    parser_admin.add_argument("message", help="To add migration message", nargs='?', default="Default migration message")
     
     parser_drop = subparsers.add_parser("migrate:drop", help="Drop tables from the database")
     parser_drop.add_argument("target", help="'all' or model name (e.g., Admin, User)")
@@ -73,8 +71,6 @@ def cli():
     if args.command == "setup":
         print("🔧 Running setup...")
         run_setup()
-        print("🔐 Generating .env file...")
-        generate_env(force=args.force)
 
     elif args.command == "create:env":
         print("🔐 Generating .env file...")
