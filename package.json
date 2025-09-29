@@ -1,0 +1,26 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "description": "**Sugar-Flaskwork** is a sweet and powerful microframework built on top of Flask, designed for rapid full-stack web development. It combines Flask’s flexibility with modern tools like TailwindCSS, CLI-powered automation, modular MVC architecture, and secure environment setup — all with cross-platform support.",
+  "main": "tailwind.config.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sugarcube08/Sugar-FlaskWork.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Sugarcube08/Sugar-FlaskWork/issues"
+  },
+  "homepage": "https://github.com/Sugarcube08/Sugar-FlaskWork#readme",
+  "devDependencies": {
+    "tailwindcss": "^4.1.13"
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.13"
+  }
+}
