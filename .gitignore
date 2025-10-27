@@ -21,8 +21,8 @@
 !controller/**
 !models/
 !models/**
-!route/
-!route/**
+!routes/
+!routes/**
 !static/
 !static/**
 !templates/
