@@ -1,6 +1,6 @@
 from app_factory import create_app
 from models import db  
-from route import web
+from routes import web
 import argparse
 from command.commands import (
     run_setup,
