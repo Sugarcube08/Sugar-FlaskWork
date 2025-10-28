@@ -12,85 +12,83 @@ from flask import current_app
 from models import Admin, db
 
 # === 🛠️ Setup Command ===
+def run(cmd, shell=True, env=None):
+    """Execute a shell command safely with logging."""
+    print(f"→ {cmd}")
+    try:
+        subprocess.run(cmd, shell=shell, check=True, env=env)
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Command failed: {cmd}")
+        print(e)
+        sys.exit(1)
+
+def load_dependencies(yaml_path="./dependencies.yml"):
+    """Load dependencies from YAML file."""
+    if not os.path.exists(yaml_path):
+        print(f"❌ Missing dependency file: {yaml_path}")
+        sys.exit(1)
+    with open(yaml_path, "r") as f:
+        return yaml.safe_load(f)
+
+def install_python(python_deps):
+    """Install Python dependencies from requirements.txt."""
+    print("🐍 Installing Python dependencies...")
+    if "requirements" in python_deps and os.path.exists(python_deps["requirements"]):
+        run(f"{sys.executable} -m pip install -r {python_deps['requirements']}")
+    else:
+        print("⚠ No Python requirements found.")
+
+def install_system(system_deps):
+    """Install system-level dependencies dynamically."""
+    os_type = platform.system().lower()
+    print(f"🧩 Detected OS: {os_type}")
+
+    for name, cmd_map in system_deps.items():
+        cmd = cmd_map.get(os_type) or cmd_map.get("all")
+        if not cmd:
+            continue
+
+        # Skip if already installed
+        if shutil.which(name):
+            print(f"✔ {name} already installed.")
+            continue
+
+        print(f"🔧 Installing {name}...")
+        run(cmd)
+
+def run_build_steps(build_steps):
+    """Run post-install build commands (like Tailwind build)."""
+    os_type = platform.system().lower()
+    for name, cmd_map in build_steps.items():
+        cmd = cmd_map.get(os_type) or cmd_map.get("all")
+        if not cmd:
+            continue
+        print(f"🏗️ Building {name} assets...")
+        run(cmd)
+
 def run_setup():
-    os_type = platform.system()
-    print("📦 Installing Python requirements...")
-    subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
+    deps = load_dependencies()
+    env = os.environ.copy()
 
-    if os_type == "Linux":
-        print("🔧 Installing Node.js & npm for Linux...")
-        subprocess.run(["sudo", "apt", "install", "-y", "nodejs", "npm"])
-        print("🌐 Initializing Tailwind CSS...")
-        subprocess.run(["npm", "init", "-y"])
-        subprocess.run(["npm", "install", "tailwindcss", "@tailwindcss/cli"])
-        subprocess.run([
-        "npx", "tailwindcss", "-i", "./static/src/input.css",
-        "-o", "./static/css/output.css"
-    ])
+    # --- Python dependencies ---
+    if "python" in deps:
+        install_python(deps["python"])
 
-    elif os_type == "Darwin":
-        # first install homebrew if not installed
-        if not shutil.which("brew"):
-            subprocess.run(["/bin/bash", "-c", "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"])
-            # Add Homebrew to PATH for current session
-            brew_path = "/opt/homebrew/bin/brew"
-            os.environ["PATH"] = f"{brew_path}:{os.environ['PATH']}"
-            time.sleep(3)  # wait a bit for brew to be ready
-        
-        print("🍏 Installing Node.js for macOS...")
-        subprocess.run(["brew", "install", "node"])
-        print("🌐 Initializing Tailwind CSS...")
-        subprocess.run(["npm", "init", "-y"])
-        subprocess.run(["npm", "install", "tailwindcss", "@tailwindcss/cli"])
-        subprocess.run([
-        "npx", "tailwindcss", "-i", "./static/src/input.css",
-        "-o", "./static/css/output.css"
-    ])
-    elif os_type == "Windows":
-        print("🪟 Installing Node.js using Scoop on Windows...")
+    # --- System dependencies ---
+    if "system" in deps:
+        install_system(deps["system"])
 
-        env = os.environ.copy()
+    # --- Tailwind initialization ---
+    if not os.path.exists("./static/src/input.css"):
+        os.makedirs("./static/src", exist_ok=True)
+        with open("./static/src/input.css", "w") as f:
+            f.write("@tailwind base;\n@tailwind components;\n@tailwind utilities;\n")
 
-        # Set execution policy and TLS
-        subprocess.run([
-            "powershell", "-Command",
-            "Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force; "
-            "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12"
-        ], check=True, env=env)
+    # --- Build steps ---
+    if "build" in deps:
+        run_build_steps(deps["build"])
 
-        # Install Scoop (if not already installed)
-        scoop_shims_path = os.path.expanduser("~/scoop/shims")
-        if not os.path.exists(scoop_shims_path):
-            subprocess.run([
-                "powershell", "-Command",
-                "iwr -useb get.scoop.sh | iex"
-            ], shell=True, check=True, env=env)
-            time.sleep(3)
-
-        # Add scoop shims to PATH for current session
-        env["PATH"] = f"{scoop_shims_path};{env['PATH']}"
-
-        # Install Node.js using Scoop
-        subprocess.run(["powershell", "-Command", "scoop install nodejs"], check=True, env=env)
-
-        # Add Node.js install path to PATH for current session
-        node_path = os.path.expanduser("~/scoop/apps/nodejs/current")
-        env["PATH"] = f"{node_path};{env['PATH']}"
-
-        time.sleep(5)
-        print("🌐 Initializing Tailwind CSS...")
-
-        # Set up Tailwind CSS
-        subprocess.run(["powershell", "-Command", "npm init -y"], check=True, env=env)
-        subprocess.run(["powershell", "-Command", "npm install tailwindcss @tailwindcss/cli"], check=True, env=env)
-        subprocess.run([
-            "powershell", "-Command",
-            "npx tailwindcss -i ./static/src/input.css -o ./static/css/output.css"
-        ], check=True, env=env)
-
-        print("✅ Node.js and Tailwind CSS installed and configured successfully.")
-
-
+    print("✅ Sugar-Flaskwork setup completed successfully!")
 # === 📄 .env Generator Command ===
 def generate_env(force=False):
     example_path = '.env.example'
