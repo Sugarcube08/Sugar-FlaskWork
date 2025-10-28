@@ -1,0 +1,16 @@
+python:
+  - flask>=3.0
+  - jinja2>=3.1
+  - requests>=2.31
+
+system:
+  nodejs:
+    linux: "sudo apt install -y nodejs npm"
+    darwin: "brew install node"
+    windows: "scoop install nodejs"
+  tailwindcss:
+    all: "npm install -g tailwindcss"
+  uv:
+    linux: "curl -LsSf https://astral.sh/uv/install.sh | sh"
+    darwin: "curl -LsSf https://astral.sh/uv/install.sh | sh"
+    windows: "powershell -Command iwr https://astral.sh/uv/install.ps1 -UseBasicParsing | iex"
