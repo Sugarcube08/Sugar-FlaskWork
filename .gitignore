@@ -2,7 +2,8 @@
 **
 
 # Allow only specific project files
-!app.py
+!app
+!app.bat
 !runner.py
 !.env.example
 !.gitignore
@@ -15,8 +16,8 @@
 !tailwind.config.js
 
 # Allow necessary folders and all their contents
-!command/
-!command/**
+!utils/
+!utils/**
 !controller/
 !controller/**
 !models/
@@ -27,6 +28,8 @@
 !static/**
 !templates/
 !templates/**
+!imports/
+!imports/**
 
 # Allow common hidden project folders
 !.github/
@@ -39,6 +42,10 @@
 !.idea/**
 !.config/
 !.config/**
+
+!*.toml
+!*.lock
+
 
 # Ignore typical dev and build clutter
 .git/

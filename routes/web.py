@@ -1,4 +1,4 @@
-from controller import HomeController
+from controller import *
 
 home_controller = HomeController()
 

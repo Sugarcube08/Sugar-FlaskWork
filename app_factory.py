@@ -1,14 +1,7 @@
 # app_factory.py
-import os
-import base64
 from dotenv import load_dotenv
-from flask import Flask
-from cryptography.fernet import Fernet
-from itsdangerous import URLSafeTimedSerializer
+from utils.imports import *
 from extensions import migrate, csrf
-from models import db
-from sqlalchemy import create_engine
-from sqlalchemy_utils import database_exists, create_database
 
 fernet = None
 serializer = None
