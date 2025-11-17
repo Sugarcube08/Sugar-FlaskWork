@@ -1,23 +1,20 @@
-from app_factory import create_app
-from models import db  
-from routes import web
-import argparse
-from command.commands import (
-    run_setup,
-    generate_env,
-    create_controller,
-    create_model,
-    migrate_init,
-    migrate_commit_and_apply,
-    create_html_template,
-    create_all,
-    create_component_template,
-    create_subtemplate,
-    create_admin,
-    drop_all_tables,
-    drop_table_by_name,
-    start_tailwind_watch
-)
+try:
+    from utils.imports import *
+    from app_factory import create_app
+    from models import db  
+    from routes import web
+    import argparse
+    from utils.scripts.commands import *
+
+except ImportError as e:
+    print(f"{e}")
+    from utils.scripts.commands import run_setup
+    import argparse
+    print("⚠️ Failed to Import Dependencies!!!")
+    print("Entering Setup Mode...")
+    run_setup()
+    print("✅ Setup Complete! Good To Move On!")
+
 
 def cli():
     parser = argparse.ArgumentParser(

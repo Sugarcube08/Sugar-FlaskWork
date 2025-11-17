@@ -1,0 +1,22 @@
+# system.toml
+
+[system.node]
+linux  = "sudo apt install -y nodejs npm"
+darwin = "brew install node"
+windows = "scoop install nodejs-lts"
+
+[system.tailwind]
+all = "npm install && npm install -g tailwindcss"
+
+[system.redis]
+linux  = "sudo apt install -y redis-server"
+darwin = "brew install redis"
+windows = "scoop install redis"
+
+[system.uv]
+linux  = "sudo snap install astral-uv"
+darwin = "brew install uv"
+windows = "scoop install uv"
+
+[build.tailwind]
+all = "npx tailwindcss -i ./static/src/input.css -o ./static/css/output.css"

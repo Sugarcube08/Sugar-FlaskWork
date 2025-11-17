@@ -1,100 +1,16 @@
-try:
-    import os, subprocess, platform, sys, base64, shutil, time
-    from flask_migrate import init, stamp
-    from flask_migrate import migrate 
-    from flask_migrate import upgrade 
-    from flask import current_app
+try:    
+    from utils.imports import *
     from models import Admin, db
+    from .setup import setup
 except ImportError:
-    import os, subprocess, platform, sys, base64, shutil, time
+    from .setup import setup
 
-# === 🛠️ Setup Command ===
 def run_setup():
-    os_type = platform.system()
-
-    if os_type == "Linux":
-        print("🔧 Installing Node.js & npm for Linux...")
-        subprocess.run(["sudo", "apt", "install", "-y", "nodejs", "npm"])
-        print("🌐 Initializing Tailwind CSS...")
-        subprocess.run(["npm", "init", "-y"])
-        subprocess.run(["npm", "install", "tailwindcss", "@tailwindcss/cli"])
-        subprocess.run([
-        "npx", "tailwindcss", "-i", "./static/src/input.css",
-        "-o", "./static/css/output.css"
-    ])
-
-    elif os_type == "Darwin":
-        # first install homebrew if not installed
-        if not shutil.which("brew"):
-            subprocess.run(["/bin/bash", "-c", "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"])
-            # Add Homebrew to PATH for current session
-            brew_path = "/opt/homebrew/bin/brew"
-            os.environ["PATH"] = f"{brew_path}:{os.environ['PATH']}"
-            time.sleep(3)  # wait a bit for brew to be ready
-
-        print("Installing UV...")
-        subprocess.run(["brew", "install", "uv"])
-        print("🍏 Installing Node.js for macOS...")
-        subprocess.run(["brew", "install", "node"])
-        print("🌐 Initializing Tailwind CSS...")
-        subprocess.run(["npm", "init", "-y"])
-        subprocess.run(["npm", "install", "tailwindcss", "@tailwindcss/cli"])
-        subprocess.run([
-        "npx", "tailwindcss", "-i", "./static/src/input.css",
-        "-o", "./static/css/output.css"
-    ])
-    elif os_type == "Windows":
-        print("🪟 Installing Node.js using Scoop on Windows...")
-
-        env = os.environ.copy()
-
-        # Set execution policy and TLS
-        subprocess.run([
-            "powershell", "-Command",
-            "Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force; "
-            "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12"
-        ], check=True, env=env)
-
-        # Install Scoop (if not already installed)
-        scoop_shims_path = os.path.expanduser("~/scoop/shims")
-        if not os.path.exists(scoop_shims_path):
-            subprocess.run([
-                "powershell", "-Command",
-                "iwr -useb get.scoop.sh | iex"
-            ], shell=True, check=True, env=env)
-            time.sleep(3)
-
-        # Add scoop shims to PATH for current session
-        env["PATH"] = f"{scoop_shims_path};{env['PATH']}"
-
-        # Install Node.js using Scoop
-        subprocess.run(["powershell", "-Command", "scoop install nodejs-lts"], check=True, env=env)
-
-        # Add Node.js install path to PATH for current session
-        node_path = os.path.expanduser("~/scoop/apps/nodejs/current")
-        env["PATH"] = f"{node_path};{env['PATH']}"
-
-        time.sleep(5)
-        print("🌐 Initializing Tailwind CSS...")
-
-        # Set up Tailwind CSS
-        subprocess.run(["powershell", "-Command", "npm init -y"], check=True, env=env)
-        subprocess.run(["powershell", "-Command", "npm install tailwindcss @tailwindcss/cli"], check=True, env=env)
-        subprocess.run([
-            "powershell", "-Command",
-            "npx tailwindcss -i ./static/src/input.css -o ./static/css/output.css"
-        ], check=True, env=env)
-
-        # Add uv to PATH for current session
-        subprocess.run(["powershell", "-Command", "scoop bucket add astral-sh https://github.com/astral-sh/scoop-bucket"])
-        subprocess.run(["powershell", "-Command", "scoop update"])
-        subprocess.run(["powershell", "-Command", "scoop install uv"], check=True, env=env)
-        env["PATH"] = f"{scoop_shims_path};{env['PATH']}"
-        
-        print("✅ Node.js Tailwind CSS installed and configured successfully.")
-
-    print("📦 Installing Python requirements...")
-    subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt","--progress-bar", "on"])
+    setup()
+    try:
+        generate_env()
+    except Exception as e:
+        print(f"env exists: {e}")
 
 def add_requirements(requirement):
     os_type = platform.system()
