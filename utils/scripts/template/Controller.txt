@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template
+from utils.imports import Blueprint, render_template
 
 class {className}:
     def __init__(self):

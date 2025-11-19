@@ -8,7 +8,7 @@ try:
 
 except ImportError as e:
     print(f"{e}")
-    from utils.scripts.commands import run_setup
+    from utils.scripts.commands import *
     import argparse
     print("⚠️ Failed to Import Dependencies!!!")
     print("Entering Setup Mode...")
