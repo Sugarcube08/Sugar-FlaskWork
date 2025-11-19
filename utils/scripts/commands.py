@@ -2,7 +2,9 @@ try:
     from utils.imports import *
     from models import Admin, db
     from .setup import setup
+    from pathlib import Path
 except ImportError:
+    from pathlib import Path
     from .setup import setup
 
 def run_setup():
@@ -66,8 +68,7 @@ def generate_env(force=False):
 def create_controller(name):
     if '/' in name or '\\' in name:
         path = name.replace('/','.').replace('\\', '.')
-        name = path.split('.')[-1]  # Get the last part as the controller name
-        # 💡 Format controller name properly
+        name = path.split('.')[-1]
         class_name = name.capitalize() + "Controller"
         file_stem = path.lower() + "Controller"
         file_name = f"{file_stem.replace('.','/')}.py"
@@ -78,9 +79,9 @@ def create_controller(name):
         file_name = f"{file_stem}.py"
 
     # 🛣️ Paths
-    base_dir = os.path.dirname(os.path.dirname(__file__))  # go up to project root
+    base_dir = Path(__file__).resolve().parents[2]
     controller_dir = os.path.join(base_dir, 'controller')
-    template_path = os.path.join(base_dir, 'command', 'template', 'Controller.txt')
+    template_path = os.path.join(base_dir, 'utils', 'scripts', 'template', 'Controller.txt')
     output_path = os.path.join(controller_dir, file_name)
     init_path = os.path.join(controller_dir, '__init__.py')
 
@@ -136,9 +137,9 @@ def create_model(name):
         file_stem = name.lower()
         file_name = f"{file_stem}.py"
 
-    base_dir = os.path.dirname(os.path.dirname(__file__))
+    base_dir = Path(__file__).resolve().parents[2]
     model_dir = os.path.join(base_dir, 'models')
-    template_path = os.path.join(base_dir, 'command', 'template', 'Model.txt')
+    template_path = os.path.join(base_dir, 'utils', 'scripts', 'template', 'Model.txt')
     output_path = os.path.join(model_dir, file_name)
     init_path = os.path.join(model_dir, '__init__.py')
 
@@ -233,10 +234,10 @@ def create_html_template(name):
         print("❌ Invalid template name. Use letters, numbers, and underscores only.")
         return
 
-    base_dir = os.path.dirname(os.path.dirname(__file__))
+    base_dir = Path(__file__).resolve().parents[2]
 
     # Paths
-    template_txt_path = os.path.join(base_dir, 'command', 'template', 'Template.txt')
+    template_txt_path = os.path.join(base_dir, 'utils', 'scripts', 'template', 'Template.txt')
     templates_dir = os.path.join(base_dir, 'templates')
     output_file_path = os.path.join(templates_dir, f'{name}.html')
 
@@ -280,8 +281,8 @@ def create_component_template(name):
         print("❌ Invalid component name. Use only letters, numbers, and underscores.")
         return
 
-    base_dir = os.path.dirname(os.path.dirname(__file__))
-    template_txt_path = os.path.join(base_dir, 'command', 'template', 'Component.txt')
+    base_dir = Path(__file__).resolve().parents[2]
+    template_txt_path = os.path.join(base_dir, 'utils', 'scripts', 'template', 'Component.txt')
     components_dir = os.path.join(base_dir, 'templates', 'components')
     output_path = os.path.join(components_dir, f"{name}.html")
 
@@ -309,8 +310,8 @@ def create_subtemplate(name):
         print("❌ Invalid subtemplate name. Use only letters, numbers, and underscores.")
         return
 
-    base_dir = os.path.dirname(os.path.dirname(__file__))
-    template_txt_path = os.path.join(base_dir, 'command', 'template', 'subTemplate.txt')
+    base_dir = Path(__file__).resolve().parents[2]
+    template_txt_path = os.path.join(base_dir, 'utils', 'scripts', 'template', 'subTemplate.txt')
     subtemplate_dir = os.path.join(base_dir, 'templates', 'subtemplate')
     output_path = os.path.join(subtemplate_dir, f"{name}.html")
 
@@ -385,7 +386,7 @@ def drop_all_tables(app):
                 else:
                     print(f"⚠️ Database file '{db_name}' does not exist.")
             else:
-                # For other databases, use SQL commands
+                # For other databases, use SQL utils', 'scriptss
                 from sqlalchemy import create_engine
                 neutral_url = engine.url.set(database=None)
                 neutral_engine = create_engine(neutral_url)
