@@ -57,8 +57,8 @@ def cli():
 
     subparsers.add_parser("migrate:init", help="Initialize migration directory")
 
-    subparsers.add_parser("migrate", help="Generate migration script and upgrade DB")
-    parser_admin.add_argument("message", help="To add migration message", nargs='?', default="Default migration message")
+    parser_migrate = subparsers.add_parser("migrate", help="Generate migration script and upgrade DB")
+    parser_migrate.add_argument("message", help="To add migration message", nargs='?', default="Default migration message")
     
     parser_drop = subparsers.add_parser("migrate:drop", help="Drop tables from the database")
     parser_drop.add_argument("target", help="'all' or model name (e.g., Admin, User)")
